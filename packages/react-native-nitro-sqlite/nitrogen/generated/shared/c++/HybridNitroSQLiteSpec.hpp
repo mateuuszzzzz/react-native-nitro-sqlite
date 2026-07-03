@@ -66,7 +66,7 @@ namespace margelo::nitro::rnnitrosqlite {
 
     public:
       // Methods
-      virtual void open(const std::string& dbName, const std::optional<std::string>& location) = 0;
+      virtual void open(const std::string& dbName, const std::optional<std::string>& location, const std::optional<std::string>& keyId) = 0;
       virtual void close(const std::string& dbName) = 0;
       virtual void drop(const std::string& dbName, const std::optional<std::string>& location) = 0;
       virtual void attach(const std::string& mainDbName, const std::string& dbNameToAttach, const std::string& alias, const std::optional<std::string>& location) = 0;

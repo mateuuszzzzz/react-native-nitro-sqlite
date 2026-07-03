@@ -75,6 +75,23 @@ def REACT_NATIVE_MINOR_VERSION = REACT_NATIVE_VERSION.startsWith("0.0.0-") ? 100
 
 def SQLITE_FLAGS = rootProject.properties['nitroSqliteFlags']
 
+// --- SQLCipher (optional, opt-in) -----------------------------------------
+// Enable with `nitroSqliteSqlcipher=true` in android/gradle.properties. When
+// on, the SQLCipher amalgamation is compiled and linked against a prebuilt
+// OpenSSL libcrypto downloaded per-ABI (checksum-verified) by `extractOpenSSL`.
+def nitroSqliteSqlcipher = (project.findProperty('nitroSqliteSqlcipher') ?: 'false').toString().toBoolean()
+def opensslVersion = (project.findProperty('nitroSqliteOpensslVersion') ?: '3.6.2').toString()
+def opensslBaseUrl = "https://github.com/217heidai/openssl_for_android/releases/download/${opensslVersion}"
+def opensslRoot = file("$buildDir/openssl/$opensslVersion")
+// SHA-256 of the upstream per-ABI tarballs. Pinned to the default version;
+// if a different version is requested, verification is skipped with a warning.
+def opensslSha256 = [
+  'arm64-v8a'  : '79a15cb1d56477be9bf99922f3add6976bcabd14a0b64d469e6ded4605752101',
+  'armeabi-v7a': 'c9fc05e0e9572ac119dd1beff7df19851edab611766c62f68e14c89032f667d1',
+  'x86'        : 'ff0425f1a5ef331c53d23cf40e0100cf1b472ab0875b5ccc889db2e531007169',
+  'x86_64'     : 'eff52ea59431171caebb532f17dd82171eb7e8bb0bbaf72afeb2dda75c3d4596',
+]
+
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
@@ -111,6 +128,8 @@ android {
           "-DANDROID_TOOLCHAIN=clang",
           "-DREACT_NATIVE_MINOR_VERSION=${REACT_NATIVE_MINOR_VERSION}",
           "-DSQLITE_FLAGS='${SQLITE_FLAGS ? SQLITE_FLAGS : ''}'",
+          "-DNITRO_SQLITE_SQLCIPHER=${nitroSqliteSqlcipher ? 'ON' : 'OFF'}",
+          "-DNITRO_SQLITE_OPENSSL_ROOT=${opensslRoot.absolutePath}",
           "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
         abiFilters (*reactNativeArchitectures())
       }
@@ -173,6 +192,61 @@ android {
   }
 }
 
+// Downloads + verifies + flattens the prebuilt OpenSSL static libs into
+// $buildDir/openssl/<version>/<abi>/{include,lib/libcrypto.a}. Only runs when
+// SQLCipher is enabled; results are cached on disk and skipped if present.
+def extractOpenSSL = tasks.register("extractOpenSSL") {
+  onlyIf { nitroSqliteSqlcipher }
+  doLast {
+    reactNativeArchitectures().each { abi ->
+      def abiDir = new File(opensslRoot, abi)
+      if (new File(abiDir, "lib/libcrypto.a").exists()) {
+        return // already provisioned
+      }
+
+      def tarball = new File(opensslRoot, "download/OpenSSL_${opensslVersion}_${abi}.tar.gz")
+      tarball.parentFile.mkdirs()
+      if (!tarball.exists()) {
+        def url = "${opensslBaseUrl}/OpenSSL_${opensslVersion}_${abi}.tar.gz"
+        logger.lifecycle("[nitro-sqlite] Downloading OpenSSL ${opensslVersion} (${abi})…")
+        ant.get(src: url, dest: tarball, verbose: false)
+      }
+
+      def expected = opensslSha256[abi]
+      if (expected != null) {
+        def md = java.security.MessageDigest.getInstance("SHA-256")
+        tarball.eachByte(8192) { buf, n -> md.update(buf, 0, n) }
+        def actual = md.digest().collect { String.format('%02x', it) }.join()
+        if (actual != expected) {
+          throw new GradleException("[nitro-sqlite] OpenSSL ${abi} checksum mismatch.\n  expected: ${expected}\n  actual:   ${actual}")
+        }
+      } else {
+        logger.warn("[nitro-sqlite] No pinned checksum for OpenSSL ${opensslVersion} (${abi}); skipping verification.")
+      }
+
+      // Archive layout: openssl_<version>_<abi>/{include,lib}; flatten it up.
+      def tmp = new File(opensslRoot, "tmp/${abi}")
+      delete(tmp)
+      copy {
+        from tarTree(resources.gzip(tarball))
+        into tmp
+      }
+      copy {
+        from new File(tmp, "openssl_${opensslVersion}_${abi}")
+        into abiDir
+      }
+      delete(tmp)
+    }
+  }
+}
+
+// Make sure OpenSSL is provisioned before CMake configures/builds.
+tasks.configureEach { task ->
+  if (nitroSqliteSqlcipher && (task.name.startsWith("configureCMake") || task.name.startsWith("buildCMake"))) {
+    task.dependsOn(extractOpenSSL)
+  }
+}
+
 repositories {
   mavenCentral()
   google()
@@ -186,6 +260,9 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+  // Keystore-backed secure storage for SQLCipher keys (see KeyProvider.kt).
+  implementation "androidx.security:security-crypto:1.1.0-alpha06"
 
   // Add a dependency on NitroModules
   implementation project(":react-native-nitro-modules")

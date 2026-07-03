@@ -14,7 +14,8 @@ enum NitroSQLiteExceptionType {
   UnableToAttachToDatabase,
   SqlExecutionError,
   CouldNotLoadFile,
-  NoBatchCommandsProvided
+  NoBatchCommandsProvided,
+  EncryptionKeyUnavailable
 };
 
 inline std::unordered_map<NitroSQLiteExceptionType, std::string> exceptionTypeStrings = {
@@ -24,7 +25,8 @@ inline std::unordered_map<NitroSQLiteExceptionType, std::string> exceptionTypeSt
     {UnableToAttachToDatabase, "UnableToAttachToDatabase"},
     {SqlExecutionError, "SqlExecutionError"},
     {CouldNotLoadFile, "CouldNotLoadFile"},
-    {NoBatchCommandsProvided, "NoBatchCommandsProvided"}};
+    {NoBatchCommandsProvided, "NoBatchCommandsProvided"},
+    {EncryptionKeyUnavailable, "EncryptionKeyUnavailable"}};
 
 inline std::string typeToString(NitroSQLiteExceptionType type) {
   return exceptionTypeStrings[type];

@@ -18,6 +18,9 @@ export function HomeScreen() {
       <TouchableOpacity onPress={() => navigation.navigate('SQL Console')}>
         <Text style={ScreenStyles.buttonText}>SQL Console</Text>
       </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate('Encryption')}>
+        <Text style={ScreenStyles.buttonText}>Encryption</Text>
+      </TouchableOpacity>
 
       <StatusBar style="auto" />
     </ScrollView>

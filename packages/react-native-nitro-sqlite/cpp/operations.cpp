@@ -1,4 +1,5 @@
 #include "operations.hpp"
+#include "KeyProvider.hpp"
 #include "NitroSQLiteException.hpp"
 #include "hybridObjects/HybridNitroSQLiteQueryResult.hpp"
 #include "logs.hpp"
@@ -21,8 +22,40 @@ namespace margelo::rnnitrosqlite {
 
 std::map<std::string, sqlite3*> dbMap = std::map<std::string, sqlite3*>();
 
-void sqliteOpenDb(const std::string& dbName, const std::string& docPath) {
+void sqliteOpenDb(const std::string& dbName, const std::string& docPath, const std::optional<std::string>& keyId) {
   std::string dbPath = get_db_path(dbName, docPath);
+
+  const bool encrypted = keyId && !keyId->empty();
+
+  // Resolve the encryption key BEFORE creating the file. Whether the database
+  // file already exists decides if a missing key may be freshly generated
+  // (new db) or must fail (existing encrypted db whose key was lost).
+  std::string keyMaterial;
+  if (encrypted) {
+#ifdef SQLITE_HAS_CODEC
+    const bool dbExists = file_exists(dbPath);
+    const KeyResolveResult resolved = resolvePlatformEncryptionKey(*keyId, dbExists);
+    switch (resolved.status) {
+      case KeyResolveStatus::Ok:
+        keyMaterial = resolved.key;
+        break;
+      case KeyResolveStatus::Unavailable:
+        throw NitroSQLiteException(
+            NitroSQLiteExceptionType::EncryptionKeyUnavailable,
+            "No encryption key found for keyId '" + *keyId + "' but the database '" + dbName +
+                "' already exists. The data cannot be decrypted without the original key" +
+                (resolved.message.empty() ? "" : (": " + resolved.message)) + ".");
+      case KeyResolveStatus::Error:
+      default:
+        throw NitroSQLiteException(NitroSQLiteExceptionType::EncryptionKeyUnavailable,
+                                   "Could not access the secure key store for keyId '" + *keyId + "': " + resolved.message);
+    }
+#else
+    throw NitroSQLiteException(NitroSQLiteExceptionType::DatabaseCannotBeOpened,
+                               "A keyId was provided but this build of react-native-nitro-sqlite was compiled "
+                               "without SQLCipher support. Enable it with the `nitroSqliteSqlcipher` build flag.");
+#endif
+  }
 
   int sqlOpenFlags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
 
@@ -32,9 +65,36 @@ void sqliteOpenDb(const std::string& dbName, const std::string& docPath) {
 
   if (exit != SQLITE_OK) {
     throw NitroSQLiteException(NitroSQLiteExceptionType::DatabaseCannotBeOpened, sqlite3_errmsg(db));
-  } else {
-    dbMap[dbName] = db;
   }
+
+#ifdef SQLITE_HAS_CODEC
+  if (encrypted) {
+    // Apply the SQLCipher encryption key. This must happen before any other
+    // statement runs on the connection.
+    exit = sqlite3_key(db, keyMaterial.c_str(), static_cast<int>(keyMaterial.length()));
+    if (exit != SQLITE_OK) {
+      const std::string message = sqlite3_errmsg(db);
+      sqlite3_close_v2(db);
+      throw NitroSQLiteException(NitroSQLiteExceptionType::DatabaseCannotBeOpened, message);
+    }
+  }
+#endif
+
+  // Force a header read so the connection is validated eagerly, at open time,
+  // instead of on the user's first query. This makes opening an encrypted
+  // database with a wrong key fail here (sqlite3_open_v2/sqlite3_key are lazy
+  // and would otherwise succeed until the first read). A plaintext database
+  // opened without a key still succeeds.
+  exit = sqlite3_exec(db, "SELECT count(*) FROM sqlite_master;", nullptr, nullptr, nullptr);
+  if (exit != SQLITE_OK) {
+    sqlite3_close_v2(db);
+    const std::string message =
+        encrypted ? "Could not open encrypted database '" + dbName + "': invalid key or file is not a database"
+                  : "Could not open database '" + dbName + "': file is not a database (it may be encrypted and require a keyId)";
+    throw NitroSQLiteException(NitroSQLiteExceptionType::DatabaseCannotBeOpened, message);
+  }
+
+  dbMap[dbName] = db;
 }
 
 void sqliteCloseDb(const std::string& dbName) {

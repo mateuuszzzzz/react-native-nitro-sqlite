@@ -7,6 +7,7 @@ import { HomeScreen } from './screens/HomeScreen'
 import { UnitTestScreen } from './screens/UnitTestScreen'
 import { BenchmarkScreen } from './screens/BenchmarkScreen'
 import { SqlConsoleScreen } from './screens/SqlConsoleScreen'
+import { EncryptionScreen } from './screens/EncryptionScreen'
 
 export default function App() {
   return (
@@ -27,6 +28,10 @@ export default function App() {
         <RootStack.Screen
           name="SQL Console"
           component={SqlConsoleScreen}
+        />
+        <RootStack.Screen
+          name="Encryption"
+          component={EncryptionScreen}
         />
       </RootStack.Navigator>
 

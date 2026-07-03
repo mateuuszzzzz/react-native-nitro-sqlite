@@ -11,6 +11,7 @@ using namespace margelo::nitro;
 using namespace margelo::nitro::rnnitrosqlite;
 
 + (void)load {
+
   // Get appGroupID value from Info.plist using key "AppGroup"
   NSString *appGroupID = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"RNNitroSQLite_AppGroup"];
   NSString *documentPath;

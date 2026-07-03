@@ -224,6 +224,47 @@ To use the system SQLite instead of the bundled one:
 NITRO_SQLITE_USE_PHONE_VERSION=1 npx pod-install
 ```
 
+## Encryption (SQLCipher)
+
+Nitro SQLite can be built with [SQLCipher](https://www.zetetic.net/sqlcipher/) for transparent, full-database encryption. This is an opt-in build flag: the default build ships plain SQLite.
+
+The encryption key **never passes through JavaScript**. Instead you supply a `keyId`, and the native layer resolves the actual 32-byte key from the platform secure storage — the **Keychain** on iOS and **Keystore-backed** storage on Android:
+
+```typescript
+import { open } from 'react-native-nitro-sqlite'
+
+// First open for this keyId: a random key is generated, stored securely, and
+// used to create the encrypted database. Subsequent opens reuse the same key.
+const db = open({ name: 'secure.sqlite', keyId: 'main-db' })
+```
+
+Key lifecycle:
+
+- **First open** for a `keyId` (database file does not exist yet): a cryptographically random key is generated with the OS RNG, stored under that `keyId`, and used to encrypt the new database.
+- **Subsequent opens**: the stored key is read back and applied.
+- **Key missing but database exists** (e.g. secure storage was cleared): `open()` throws an `EncryptionKeyUnavailable` error and does **not** generate a new key or delete data. The data cannot be decrypted without the original key, so your app decides whether to `db.delete()` and start over.
+
+On iOS the key is stored with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` (available only while the device is unlocked, never synced or backed up to another device). On Android it is stored in `EncryptedSharedPreferences` whose master key lives in the Android Keystore.
+
+Enable SQLCipher per platform:
+
+**iOS** — SQLCipher uses Apple's built-in CommonCrypto (via `Security.framework`), so there are no extra dependencies to install:
+
+```bash
+NITRO_SQLITE_SQLCIPHER=1 npx pod-install
+```
+
+**Android** — in `android/gradle.properties`:
+
+```properties
+nitroSqliteSqlcipher=true
+```
+
+Notes:
+
+- On iOS, `NITRO_SQLITE_SQLCIPHER=1` takes precedence over `NITRO_SQLITE_USE_PHONE_VERSION=1`; the system `libsqlite3` has no SQLCipher codec, so the bundled SQLCipher amalgamation is used.
+- Passing a `keyId` on a build that was not compiled with SQLCipher throws at `open()`.
+
 ## Compile-time options (e.g. FTS5, Geopoly)
 
 **iOS** — in your app’s `ios/Podfile`, in a `post_install` block:

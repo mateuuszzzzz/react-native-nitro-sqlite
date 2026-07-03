@@ -18,7 +18,7 @@ export function open(
   options: NitroSQLiteConnectionOptions,
 ): NitroSQLiteConnection {
   try {
-    HybridNitroSQLite.open(options.name, options.location)
+    HybridNitroSQLite.open(options.name, options.location, options.keyId)
     openDatabaseQueue(options.name)
   } catch (error) {
     throw NitroSQLiteError.fromError(error)
