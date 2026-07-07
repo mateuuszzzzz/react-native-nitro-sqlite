@@ -34,8 +34,19 @@ export function open(
       }
     },
     delete: () => HybridNitroSQLite.drop(options.name, options.location),
-    attach: (dbNameToAttach: string, alias: string, location?: string) =>
-      HybridNitroSQLite.attach(options.name, dbNameToAttach, alias, location),
+    attach: (
+      dbNameToAttach: string,
+      alias: string,
+      location?: string,
+      plaintext?: boolean,
+    ) =>
+      HybridNitroSQLite.attach(
+        options.name,
+        dbNameToAttach,
+        alias,
+        location,
+        plaintext,
+      ),
     detach: (alias: string) => HybridNitroSQLite.detach(options.name, alias),
     transaction: <Result = void>(fn: (tx: Transaction) => Promise<Result>) =>
       transaction(options.name, fn),

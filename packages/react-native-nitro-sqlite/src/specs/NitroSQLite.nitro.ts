@@ -15,11 +15,13 @@ export interface NitroSQLite
   open(dbName: string, location?: string, keyId?: string): void
   close(dbName: string): void
   drop(dbName: string, location?: string): void
+  databaseExists(dbName: string, location?: string): boolean
   attach(
     mainDbName: string,
     dbNameToAttach: string,
     alias: string,
     location?: string,
+    plaintext?: boolean,
   ): void
   detach(mainDbName: string, alias: string): void
   execute(

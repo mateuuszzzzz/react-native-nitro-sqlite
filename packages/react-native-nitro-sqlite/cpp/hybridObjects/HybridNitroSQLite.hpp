@@ -24,8 +24,10 @@ public:
 
   void drop(const std::string& dbName, const std::optional<std::string>& location) override;
 
+  bool databaseExists(const std::string& dbName, const std::optional<std::string>& location) override;
+
   void attach(const std::string& mainDbName, const std::string& dbNameToAttach, const std::string& alias,
-              const std::optional<std::string>& location) override;
+              const std::optional<std::string>& location, std::optional<bool> plaintext) override;
 
   void detach(const std::string& mainDbName, const std::string& alias) override;
 
