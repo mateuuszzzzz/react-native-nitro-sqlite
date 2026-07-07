@@ -17,14 +17,17 @@ public:
 
 public:
   // Methods
-  void open(const std::string& dbName, const std::optional<std::string>& location) override;
+  void open(const std::string& dbName, const std::optional<std::string>& location,
+            const std::optional<std::string>& keyId) override;
 
   void close(const std::string& dbName) override;
 
   void drop(const std::string& dbName, const std::optional<std::string>& location) override;
 
+  bool databaseExists(const std::string& dbName, const std::optional<std::string>& location) override;
+
   void attach(const std::string& mainDbName, const std::string& dbNameToAttach, const std::string& alias,
-              const std::optional<std::string>& location) override;
+              const std::optional<std::string>& location, std::optional<bool> plaintext) override;
 
   void detach(const std::string& mainDbName, const std::string& alias) override;
 

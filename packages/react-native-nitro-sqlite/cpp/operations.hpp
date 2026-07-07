@@ -5,14 +5,16 @@
 
 namespace margelo::rnnitrosqlite {
 
-void sqliteOpenDb(const std::string& dbName, const std::string& docPath);
+void sqliteOpenDb(const std::string& dbName, const std::string& docPath, const std::optional<std::string>& keyId = std::nullopt);
 
 void sqliteCloseDb(const std::string& dbName);
+
+bool sqliteDatabaseExists(const std::string& dbName, const std::string& docPath);
 
 void sqliteRemoveDb(const std::string& dbName, const std::string& docPath);
 
 void sqliteAttachDb(const std::string& mainDBName, const std::string& docPath, const std::string& databaseToAttach,
-                    const std::string& alias);
+                    const std::string& alias, bool plaintext = false);
 
 void sqliteDetachDb(const std::string& mainDBName, const std::string& alias);
 

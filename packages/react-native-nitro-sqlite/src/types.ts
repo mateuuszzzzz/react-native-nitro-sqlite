@@ -3,12 +3,45 @@ import type { NitroSQLiteQueryResult } from './specs/NitroSQLiteQueryResult.nitr
 export interface NitroSQLiteConnectionOptions {
   name: string
   location?: string
+  /**
+   * Identifier of the SQLCipher encryption key for this database.
+   *
+   * The key material itself never passes through JavaScript. When a `keyId` is
+   * provided, the native layer resolves a 32-byte key from the platform secure
+   * storage (Keychain on iOS, Keystore-backed storage on Android) and applies
+   * it to the database:
+   *  - if no key exists for this `keyId` and the database file does not exist
+   *    yet, a random key is generated and stored, then used to create the
+   *    encrypted database;
+   *  - if no key exists for this `keyId` but the database file already exists,
+   *    opening fails with an `EncryptionKeyUnavailable` error (the data cannot
+   *    be decrypted without the original key). The app decides whether to
+   *    delete and recreate the database.
+   *
+   * Requires a build compiled with SQLCipher support (the `nitroSqliteSqlcipher`
+   * / `NITRO_SQLITE_SQLCIPHER` build flag). Omit it to open an unencrypted
+   * database.
+   */
+  keyId?: string
 }
 
 export interface NitroSQLiteConnection {
   close(): void
   delete(): void
-  attach(dbNameToAttach: string, alias: string, location?: string): void
+  /**
+   * Attaches another database to this connection under the given alias.
+   *
+   * When this connection is encrypted (opened with a `keyId`), an attached
+   * database inherits the main database's encryption key by default. Pass
+   * `plaintext: true` to attach an unencrypted database instead (e.g. to read
+   * data from a legacy plaintext database during a migration).
+   */
+  attach(
+    dbNameToAttach: string,
+    alias: string,
+    location?: string,
+    plaintext?: boolean,
+  ): void
   detach(alias: string): void
   transaction: <Result = void>(
     transactionCallback: (tx: Transaction) => Promise<Result>,
