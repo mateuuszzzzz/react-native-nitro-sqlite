@@ -80,14 +80,19 @@ void HybridNitroSQLite::drop(const std::string& dbName, const std::optional<std:
   sqliteRemoveDb(dbName, docPath);
 };
 
+bool HybridNitroSQLite::databaseExists(const std::string& dbName, const std::optional<std::string>& location) {
+  const auto docPath = getDocPath(location);
+  return sqliteDatabaseExists(dbName, docPath);
+};
+
 void HybridNitroSQLite::attach(const std::string& mainDbName, const std::string& dbNameToAttach, const std::string& alias,
-                               const std::optional<std::string>& location) {
+                               const std::optional<std::string>& location, std::optional<bool> plaintext) {
   std::string tempDocPath = std::string(docPath);
   if (location) {
     tempDocPath = tempDocPath + "/" + *location;
   }
 
-  sqliteAttachDb(mainDbName, tempDocPath, dbNameToAttach, alias);
+  sqliteAttachDb(mainDbName, tempDocPath, dbNameToAttach, alias, plaintext.value_or(false));
 };
 
 void HybridNitroSQLite::detach(const std::string& mainDbName, const std::string& alias) {

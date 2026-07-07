@@ -120,12 +120,20 @@ void sqliteCloseAll() {
 }
 
 void sqliteAttachDb(const std::string& mainDBName, const std::string& docPath, const std::string& databaseToAttach,
-                    const std::string& alias) {
+                    const std::string& alias, const bool plaintext) {
   /**
    * There is no need to check if mainDBName is opened because sqliteExecuteLiteral will do that.
    * */
   std::string dbPath = get_db_path(databaseToAttach, docPath);
   std::string statement = "ATTACH DATABASE '" + dbPath + "' AS " + alias;
+
+  // On an encrypted (SQLCipher) connection an attached database inherits the
+  // main database's key by default. An explicit empty KEY marks the attached
+  // database as plaintext, which is required e.g. to migrate data from a
+  // legacy unencrypted database into an encrypted one.
+  if (plaintext) {
+    statement += " KEY ''";
+  }
 
   try {
     sqliteExecuteLiteral(mainDBName, statement);
@@ -147,6 +155,13 @@ void sqliteDetachDb(const std::string& mainDBName, const std::string& alias) {
     throw NitroSQLiteException(NitroSQLiteExceptionType::UnableToAttachToDatabase,
                                mainDBName + " was unable to detach database: " + std::string(e.what()));
   }
+}
+
+bool sqliteDatabaseExists(const std::string& dbName, const std::string& docPath) {
+  // Intentionally does NOT use get_db_path(): that helper mkdir()s the doc
+  // directory as a side effect, and an existence check should not create
+  // anything.
+  return file_exists(docPath + "/" + dbName);
 }
 
 void sqliteRemoveDb(const std::string& dbName, const std::string& docPath) {

@@ -17,6 +17,7 @@ namespace margelo::nitro::rnnitrosqlite {
       prototype.registerHybridMethod("open", &HybridNitroSQLiteSpec::open);
       prototype.registerHybridMethod("close", &HybridNitroSQLiteSpec::close);
       prototype.registerHybridMethod("drop", &HybridNitroSQLiteSpec::drop);
+      prototype.registerHybridMethod("databaseExists", &HybridNitroSQLiteSpec::databaseExists);
       prototype.registerHybridMethod("attach", &HybridNitroSQLiteSpec::attach);
       prototype.registerHybridMethod("detach", &HybridNitroSQLiteSpec::detach);
       prototype.registerHybridMethod("execute", &HybridNitroSQLiteSpec::execute);

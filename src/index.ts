@@ -22,6 +22,15 @@ export const NitroSQLite = {
 }
 
 export { open } from './operations/session'
+
+/**
+ * Checks whether a database file exists on disk without creating or opening
+ * it. Useful e.g. to decide whether a legacy database still needs to be
+ * migrated.
+ */
+export function databaseExists(dbName: string, location?: string): boolean {
+  return HybridNitroSQLite.databaseExists(dbName, location)
+}
 export { default as NitroSQLiteError } from './NitroSQLiteError'
 export type * from './types'
 export { typeORMDriver } from './typeORM'
