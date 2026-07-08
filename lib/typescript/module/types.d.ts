@@ -26,7 +26,15 @@ export interface NitroSQLiteConnectionOptions {
 export interface NitroSQLiteConnection {
     close(): void;
     delete(): void;
-    attach(dbNameToAttach: string, alias: string, location?: string): void;
+    /**
+     * Attaches another database to this connection under the given alias.
+     *
+     * When this connection is encrypted (opened with a `keyId`), an attached
+     * database inherits the main database's encryption key by default. Pass
+     * `plaintext: true` to attach an unencrypted database instead (e.g. to read
+     * data from a legacy plaintext database during a migration).
+     */
+    attach(dbNameToAttach: string, alias: string, location?: string, plaintext?: boolean): void;
     detach(alias: string): void;
     transaction: <Result = void>(transactionCallback: (tx: Transaction) => Promise<Result>) => Promise<Result>;
     execute: ExecuteQuery;

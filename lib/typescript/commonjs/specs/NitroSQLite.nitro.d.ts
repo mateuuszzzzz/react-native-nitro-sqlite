@@ -8,7 +8,8 @@ export interface NitroSQLite extends HybridObject<{
     open(dbName: string, location?: string, keyId?: string): void;
     close(dbName: string): void;
     drop(dbName: string, location?: string): void;
-    attach(mainDbName: string, dbNameToAttach: string, alias: string, location?: string): void;
+    databaseExists(dbName: string, location?: string): boolean;
+    attach(mainDbName: string, dbNameToAttach: string, alias: string, location?: string, plaintext?: boolean): void;
     detach(mainDbName: string, alias: string): void;
     execute(dbName: string, query: string, params?: SQLiteQueryParams): NitroSQLiteQueryResult;
     executeAsync(dbName: string, query: string, params?: SQLiteQueryParams): Promise<NitroSQLiteQueryResult>;

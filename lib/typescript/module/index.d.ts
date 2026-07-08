@@ -11,7 +11,8 @@ export declare const NitroSQLite: {
     executeBatchAsync: typeof executeBatchAsync;
     close(dbName: string): void;
     drop(dbName: string, location?: string): void;
-    attach(mainDbName: string, dbNameToAttach: string, alias: string, location?: string): void;
+    databaseExists(dbName: string, location?: string): boolean;
+    attach(mainDbName: string, dbNameToAttach: string, alias: string, location?: string, plaintext?: boolean): void;
     detach(mainDbName: string, alias: string): void;
     loadFile(dbName: string, location: string): import("./types").FileLoadResult;
     loadFileAsync(dbName: string, location: string): Promise<import("./types").FileLoadResult>;
@@ -25,6 +26,12 @@ export declare const NitroSQLite: {
     dispose(): void;
 };
 export { open } from './operations/session';
+/**
+ * Checks whether a database file exists on disk without creating or opening
+ * it. Useful e.g. to decide whether a legacy database still needs to be
+ * migrated.
+ */
+export declare function databaseExists(dbName: string, location?: string): boolean;
 export { default as NitroSQLiteError } from './NitroSQLiteError';
 export type * from './types';
 export { typeORMDriver } from './typeORM';
