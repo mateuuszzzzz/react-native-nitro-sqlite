@@ -1,6 +1,7 @@
 #include "HybridNitroSQLite.hpp"
 #include "HybridNitroSQLiteQueryResult.hpp"
 #include "NitroSQLiteException.hpp"
+#include "deviceMemory.hpp"
 #include "importSqlFile.hpp"
 #include "logs.hpp"
 #include "macros.hpp"
@@ -145,6 +146,10 @@ std::shared_ptr<Promise<FileLoadResult>> HybridNitroSQLite::loadFileAsync(const 
     auto result = loadFile(dbName, location);
     return result;
   });
+};
+
+double HybridNitroSQLite::getAvailableMemory() {
+  return getAvailableMemoryBytes();
 };
 
 } // namespace margelo::nitro::rnnitrosqlite

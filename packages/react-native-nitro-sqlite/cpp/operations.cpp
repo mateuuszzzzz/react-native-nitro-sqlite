@@ -1,6 +1,7 @@
 #include "operations.hpp"
 #include "KeyProvider.hpp"
 #include "NitroSQLiteException.hpp"
+#include "cipherHmacFamily.hpp"
 #include "hybridObjects/HybridNitroSQLiteQueryResult.hpp"
 #include "logs.hpp"
 #include "utils.hpp"
@@ -31,6 +32,9 @@ void sqliteOpenDb(const std::string& dbName, const std::string& docPath, const s
   // file already exists decides if a missing key may be freshly generated
   // (new db) or must fail (existing encrypted db whose key was lost).
   std::string keyMaterial;
+#ifdef SQLITE_HAS_CODEC
+  std::optional<CipherHmacFamily> hmacFamily;
+#endif
   if (encrypted) {
 #ifdef SQLITE_HAS_CODEC
     const bool dbExists = file_exists(dbPath);
@@ -77,6 +81,8 @@ void sqliteOpenDb(const std::string& dbName, const std::string& docPath, const s
       sqlite3_close_v2(db);
       throw NitroSQLiteException(NitroSQLiteExceptionType::DatabaseCannotBeOpened, message);
     }
+
+    hmacFamily = applyCipherHmacFamily(db, dbPath);
   }
 #endif
 
@@ -93,6 +99,13 @@ void sqliteOpenDb(const std::string& dbName, const std::string& docPath, const s
                   : "Could not open database '" + dbName + "': file is not a database (it may be encrypted and require a keyId)";
     throw NitroSQLiteException(NitroSQLiteExceptionType::DatabaseCannotBeOpened, message);
   }
+
+#ifdef SQLITE_HAS_CODEC
+  // Connection validated with the chosen family; record it so future opens reuse it regardless of later detection changes.
+  if (encrypted && hmacFamily) {
+    persistCipherHmacFamilyIfNeeded(dbPath, *hmacFamily);
+  }
+#endif
 
   dbMap[dbName] = db;
 }
@@ -175,6 +188,10 @@ void sqliteRemoveDb(const std::string& dbName, const std::string& docPath) {
   }
 
   remove(dbFilePath.c_str());
+
+#ifdef SQLITE_HAS_CODEC
+  removeCipherHmacFamilySidecar(dbFilePath);
+#endif
 }
 
 void bindStatement(sqlite3_stmt* statement, const SQLiteQueryParams& values) {

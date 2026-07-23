@@ -41,4 +41,5 @@ export interface NitroSQLite
   ): Promise<BatchQueryResult>
   loadFile(dbName: string, location: string): FileLoadResult
   loadFileAsync(dbName: string, location: string): Promise<FileLoadResult>
+  getAvailableMemory(): number
 }
