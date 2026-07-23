@@ -81,15 +81,15 @@ def SQLITE_FLAGS = rootProject.properties['nitroSqliteFlags']
 // OpenSSL libcrypto downloaded per-ABI (checksum-verified) by `extractOpenSSL`.
 def nitroSqliteSqlcipher = (project.findProperty('nitroSqliteSqlcipher') ?: 'false').toString().toBoolean()
 def opensslVersion = (project.findProperty('nitroSqliteOpensslVersion') ?: '3.6.2').toString()
-def opensslBaseUrl = "https://github.com/217heidai/openssl_for_android/releases/download/${opensslVersion}"
+def opensslBaseUrl = "https://github.com/arekm213/openssl_for_android/releases/download/${opensslVersion}"
 def opensslRoot = file("$buildDir/openssl/$opensslVersion")
-// SHA-256 of the upstream per-ABI tarballs. Pinned to the default version;
+// SHA-256 of the asm-enabled per-ABI tarballs. Pinned to the default version;
 // if a different version is requested, verification is skipped with a warning.
 def opensslSha256 = [
-  'arm64-v8a'  : '79a15cb1d56477be9bf99922f3add6976bcabd14a0b64d469e6ded4605752101',
-  'armeabi-v7a': 'c9fc05e0e9572ac119dd1beff7df19851edab611766c62f68e14c89032f667d1',
-  'x86'        : 'ff0425f1a5ef331c53d23cf40e0100cf1b472ab0875b5ccc889db2e531007169',
-  'x86_64'     : 'eff52ea59431171caebb532f17dd82171eb7e8bb0bbaf72afeb2dda75c3d4596',
+  'arm64-v8a'  : '67ecdfef966a5a7aaea23ed70f99b5e7d6783dce3219a609074fe65199bc719a',
+  'armeabi-v7a': '1a3b9e569f92941f26646e9d8e202d557ef2abfe4e213403881c8f99d5b30551',
+  'x86'        : 'cb696ce13cf14e7968adea6724a47cdbbae0298d4461e3916a64e3d4b205084c',
+  'x86_64'     : '4ab125e5aa1a85b5ac96efa765ee90a922a83269ea57fceb65ec86cd8b63773d',
 ]
 
 apply plugin: "com.android.library"
@@ -118,6 +118,10 @@ android {
   defaultConfig {
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+
+    // Ship keep rules to consuming apps so R8 doesn't strip the JNI-only
+    // KeyProvider.resolveKey (see consumer-rules.pro).
+    consumerProguardFiles "consumer-rules.pro"
 
     buildConfigField "int", "REACT_NATIVE_MINOR_VERSION", REACT_NATIVE_MINOR_VERSION.toString()
     buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
