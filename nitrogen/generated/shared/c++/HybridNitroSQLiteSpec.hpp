@@ -78,6 +78,7 @@ namespace margelo::nitro::rnnitrosqlite {
       virtual std::shared_ptr<Promise<BatchQueryResult>> executeBatchAsync(const std::string& dbName, const std::vector<BatchQueryCommand>& commands) = 0;
       virtual FileLoadResult loadFile(const std::string& dbName, const std::string& location) = 0;
       virtual std::shared_ptr<Promise<FileLoadResult>> loadFileAsync(const std::string& dbName, const std::string& location) = 0;
+      virtual double getAvailableMemory() = 0;
 
     protected:
       // Hybrid Setup
